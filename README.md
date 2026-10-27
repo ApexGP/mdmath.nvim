@@ -75,6 +75,15 @@ opts = {
     -- WARNING: This do not affect how the images are displayed, only how many pixels are used to render them.
     --          See `dynamic_scale` to modify the displayed size.
     internal_scale = 1.0,
+
+    -- How the rendered PNG is sent to the terminal:
+    --   'auto'   -> 'file' (recommended)
+    --   'file'   -> the terminal reads the PNG from disk (Kitty protocol `t=f`)
+    --   'direct' -> the PNG is base64-chunked over stdout (`t=d`); only for
+    --               terminals that cannot read a file path. Large writes can be
+    --               split by Neovim's own redraws, which corrupts the sequence
+    --               and prints the payload as text.
+    transfer = 'auto',
 }
 ```
 
