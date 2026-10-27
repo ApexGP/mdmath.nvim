@@ -48,13 +48,23 @@ function Mark:_init(bufnr, row, col, opts)
     end
 
     self.pos = tracker.add(bufnr, row, col, row_end, col_end)
+    if not self.pos then
+        -- Buffer is not tracked (e.g. `buf_attach` failed), the mark cannot be
+        -- repositioned so there is no point in keeping it.
+        return false
+    end
+
     self.pos.on_finish = function()
         self:remove()
     end
 end
 
 function Mark:remove()
-    buffers[self.bufnr]:remove(self.id)
+    local buffer = rawget(buffers, self.bufnr)
+    if not buffer then
+        return
+    end
+    buffer:remove(self.id)
 end
 
 function Mark:contains(row, col)
@@ -152,6 +162,20 @@ function Buffer:show(show)
 end
 
 function Buffer:clear()
+    -- Drop the extmarks as well, otherwise they stay attached to the buffer
+    -- forever (only the Lua table holding their ids is discarded).
+    for _, mark in pairs(self.marks) do
+        for _, id in ipairs(mark.extmark_ids) do
+            nvim.buf_del_extmark(self.bufnr, ns, id)
+        end
+        mark.extmark_ids = {}
+        mark.visible = false
+        mark.render_visible = false
+        if mark.pos then
+            mark.pos:cancel()
+        end
+    end
+
     self.marks = {}
     self:redraw()
 end
@@ -251,7 +275,6 @@ local function opts2extmark(opts, row, col)
                 local data = {
                     virt_text = row_data,
                     virt_text_pos = 'overlay',
-                    virt_text_hide = true,
                     ephemeral = false,
                     undo_restore = false,
                 }
@@ -270,7 +293,6 @@ local function opts2extmark(opts, row, col)
         local data = {
             virt_text = { { opts.text[1], opts.color } },
             virt_text_pos = opts.text_pos,
-            virt_text_hide = true,
             ephemeral = false,
             undo_restore = false,
         }
@@ -371,11 +393,17 @@ function M.add(bufnr, row, col, opts)
     opts.text_pos = opts.text_pos or 'overlay'
 
     local mark = Mark.new(bufnr, row, col, opts)
+    if not mark then
+        return nil
+    end
     return buffers[bufnr]:add(mark)
 end
 
 function M.remove(bufnr, id)
-    buffers[bufnr]:remove(id)
+    local buffer = rawget(buffers, bufnr)
+    if buffer then
+        buffer:remove(id)
+    end
 end
 
 function M.clear(bufnr)
@@ -391,18 +419,20 @@ do
             end
         end,
         on_win = function(_, _, bufnr, top, bot)
-            buffer = rawget(buffers, bufnr)
+            local buffer = rawget(buffers, bufnr)
             if not buffer then
                 return false
             end
             top = top - 1
 
-            for _, self in pairs(buffer.marks) do
-                local frow = self.pos[1]
-                local lrow = self.pos[1] + self.num_lines - 1
+            for _, mark in pairs(buffer.marks) do
+                local frow = mark.pos[1]
+                if frow then
+                    local lrow = frow + mark.num_lines - 1
 
-                if top <= lrow and frow <= bot then
-                    self:flush(not buffer._show)
+                    if top <= lrow and frow <= bot then
+                        mark:flush(not buffer._show)
+                    end
                 end
             end
             return false

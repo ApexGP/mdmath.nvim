@@ -77,8 +77,12 @@ function M.hl_as_hex(color)
         return color:lower()
     end
 
-    local foreground = nvim.get_hl(0, {name = color, create = false, link = false}).fg
-    return string.format('#%06x', foreground)
+    local hl = nvim.get_hl(0, {name = color, create = false, link = false})
+    if not hl or type(hl.fg) ~= 'number' then
+        error(string.format('foreground: "%s" is neither a hex color nor a highlight group with a fg color', color))
+    end
+
+    return string.format('#%06x', hl.fg)
 end
 
 return M

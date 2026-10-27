@@ -40,6 +40,13 @@ function Equation:_create(res, err)
     -- Multiline equations
     if self.lines then
         local image = Image.new(height, width, filename)
+        if not image then
+            -- Images cannot be displayed (e.g. stdout is not a TTY): keep the
+            -- source text visible instead of writing broken placeholders.
+            self:invalidate()
+            return
+        end
+
         local texts = image:text()
         local color = image:color()
 
@@ -81,6 +88,11 @@ function Equation:_create(res, err)
         end)
     else
         local image = Image.new(height, width, filename)
+        if not image then
+            self:invalidate()
+            return
+        end
+
         local text = image:text()[1]
         local color = image:color()
 
@@ -130,6 +142,11 @@ function Equation:_init(bufnr, row, col, text, opts)
     self.bufnr = bufnr
     -- TODO: pos should be shared with the mark
     self.pos = tracker.add(bufnr, row, col, text:len())
+    if not self.pos then
+        -- Buffer is not tracked (e.g. `buf_attach` failed), nothing to render.
+        self.valid = false
+        return false
+    end
     self.pos.on_finish = function()
         self:invalidate()
     end
@@ -174,11 +191,17 @@ function Equation:invalidate()
         return
     end
     self.valid = false
+
+    -- Release the tracked position even when nothing was rendered yet, otherwise
+    -- `tracker` keeps a stale entry until the buffer is wiped out.
+    if self.pos then
+        self.pos:cancel()
+    end
+
     if not self.created then
         return
     end
 
-    self.pos:cancel()
     marks.remove(self.bufnr, self.mark_id)
     if self.image then
         self.image:close()

@@ -20,6 +20,15 @@ local default_opts = {
     -- WARNING: This do not affect how the images are displayed, only how many pixels are used to render them.
     --          See `dynamic_scale` to modify the displayed size.
     internal_scale = 1.0,
+
+    -- How the rendered PNG reaches the terminal:
+    --   'auto'   -> 'file' (recommended)
+    --   'file'   -> the terminal reads the PNG from disk (Kitty protocol `t=f`)
+    --   'direct' -> the PNG is base64-chunked over stdout (`t=d`); only for
+    --               terminals that cannot read a file path. Large writes can be
+    --               split by Neovim's own redraws, which corrupts the escape
+    --               sequence and prints the payload as text.
+    transfer = 'auto',
 }
 
 local _opts = nil
@@ -39,7 +48,9 @@ local mt = {
         end
 
         M.validate()
-        return _opts
+        -- `validate()` installs the read-only proxy: return that instead of the
+        -- writable table, otherwise the first accessor gets a mutable reference.
+        return rawget(M, 'opts')
     end,
     __newindex = function()
         error 'Attempt to modify read-only mdmath.nvim configuration.'
@@ -56,20 +67,38 @@ function M.validate()
     local opts = _opts
 
     vim.validate {
+        filetypes = {opts.filetypes, 'table'},
         foreground = {opts.foreground, 'string'},
         anticonceal = {opts.anticonceal, 'boolean'},
         hide_on_insert = {opts.hide_on_insert, 'boolean'},
         dynamic = {opts.dynamic, 'boolean'},
         dynamic_scale = {opts.dynamic_scale, 'number'},
         internal_scale = {opts.internal_scale, 'number'},
+        update_interval = {opts.update_interval, 'number'},
+        transfer = {opts.transfer, 'string'},
     }
+
+    -- Both scales are divisors in the renderer: zero or negative values would
+    -- produce empty/invalid images.
+    assert(opts.dynamic_scale > 0, 'mdmath.nvim: `dynamic_scale` must be greater than 0')
+    assert(opts.internal_scale > 0, 'mdmath.nvim: `internal_scale` must be greater than 0')
+    assert(opts.update_interval >= 0, 'mdmath.nvim: `update_interval` must not be negative')
+    assert(vim.tbl_contains({'auto', 'file', 'direct'}, opts.transfer),
+        'mdmath.nvim: `transfer` must be one of "auto", "file", "direct"')
 
     opts.foreground = require'mdmath.util'.hl_as_hex(opts.foreground)
 
-    setmetatable(opts, {
+    -- A plain `__newindex` is not enough: it is only called for missing keys, so
+    -- writes to existing options would silently go through. Expose a proxy instead.
+    local readonly = setmetatable({}, {
+        __index = opts,
         __newindex = function()
             error 'Attempt to modify read-only mdmath.nvim options.'
         end,
+        __pairs = function()
+            return pairs(opts)
+        end,
+        __metatable = false,
     })
 
     if opts.scale then
@@ -79,7 +108,7 @@ function M.validate()
     end
 
     M.validated = true
-    rawset(M, 'opts', opts)
+    rawset(M, 'opts', readonly)
 end
 
 function M.set_opts(opts)

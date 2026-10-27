@@ -3,7 +3,6 @@ local api = vim.api
 local uv = vim.loop
 local config = require'mdmath.config'.opts
 local util = require'mdmath.util'
-local bit = require'bit'
 
 local plugin_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h")
 local processor_dir = plugin_dir .. '/mdmath-js'
@@ -15,10 +14,6 @@ do
         id = id + 1
         return tostring(id)
     end
-end
-
-local function has(flags, flag)
-    return bit.band(flags, flag) == flag
 end
 
 local PROCESS_PATH = processor_dir .. '/src/processor.js'
@@ -34,6 +29,11 @@ function Processor:_assert(condition, ...)
 end
 
 function Processor:_on_data(identifier, data_type, width, height, data)
+    -- Data may arrive after `close()`, in which case there is nothing to dispatch to.
+    if not self.callbacks then
+        return
+    end
+
     local callback = self.callbacks[identifier]
     if not callback then
         return util.err_message('no callback for identifier: ', identifier)
@@ -63,12 +63,12 @@ end
 -- end
 
 function Processor:setInternalScale(scale)
-    local code, err = self.pipes[0]:write(string.format("0:iscale:%.2f:", scale))
+    local _, err = self.pipes[0]:write(string.format("0:iscale:%.2f:", scale))
     self:_assert(not err, 'failed to set internal scale: ', err)
 end
 
 function Processor:setDynamicScale(scale)
-    local code, err = self.pipes[0]:write(string.format("0:dscale:%.2f:", scale))
+    local _, err = self.pipes[0]:write(string.format("0:dscale:%.2f:", scale))
     self:_assert(not err, 'failed to set dynamic scale: ', err)
 end
 
@@ -77,13 +77,17 @@ function Processor:request(data, cell_width, cell_height, width, height, flags, 
     -- flags: 0: none, 1: dynamic, 2: center, 3: dynamic + center
     --        TODO: flags should be a enum
 
+    if not self.callbacks then
+        return util.err_message('cannot request: processor is closed')
+    end
+
     local identifier = get_next_id()
     if self.callbacks[identifier] then
         return util.err_message('identifier already in use: ', identifier, ' (how the hell did this happen?)')
     end
     self.callbacks[identifier] = callback
 
-    local code, err =
+    local _, err =
         self.pipes[0]:write(string.format("%s:request:%d:%s:%d:%d:%d:%d:%d:%s",
             identifier, flags, color, cell_width, width, cell_height, height, #data, data))
 

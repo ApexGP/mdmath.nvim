@@ -12,6 +12,18 @@ local buffers = {}
 
 local Buffer = util.class 'Buffer'
 
+local INLINE_LANG = 'markdown_inline'
+local inline_query = nil
+
+-- Compiling the query on every parse tick is wasteful; it only depends on the
+-- language, never on the buffer.
+local function get_inline_query()
+    if not inline_query then
+        inline_query = vim.treesitter.query.parse(INLINE_LANG, '(latex_block) @block')
+    end
+    return inline_query
+end
+
 -- FIX: Temporary workaround before NeoVim 0.12
 local function get_parser(bufnr, lang)
     local parser = ts.get_parser(bufnr, lang)
@@ -44,14 +56,6 @@ function Buffer:_init(bufnr)
         group = augroup,
         callback = function()
             self:reset_timer()
-        end
-    })
-
-    -- FIX: Is this the best way to handle this?
-    nvim.create_autocmd({'VimLeave'}, {
-        group = augroup,
-        callback = function()
-            self:free()
         end
     })
 
@@ -120,13 +124,11 @@ function Buffer:parse(start_row, end_row)
     local parser = self.parser
     parser:parse({start_row, end_row})
 
-    -- FIX: Almost sure we can move this block to initialization
-    local inline_lang = 'markdown_inline'
-    local inlines = parser:children()[inline_lang]
+    local inlines = parser:children()[INLINE_LANG]
     if not inlines then
         return nil
     end
-    local query = vim.treesitter.query.parse(inline_lang, '(latex_block) @block')
+    local query = get_inline_query()
 
     local old_equations = self.equations
     local equations = {}
@@ -151,11 +153,17 @@ function Buffer:parse(start_row, end_row)
     local function get_queries(tree)
         local root = tree:root()
 
-        for _, node in query:iter_captures(root, 0, start_row, end_row) do
+        -- Iterate the whole tree and filter by overlap instead of passing the
+        -- viewport range to `iter_captures`: the range restricts captures by
+        -- their *start* row, so a block whose opening fence is just above the
+        -- viewport would be skipped, treated as out of view and invalidated
+        -- forever (nothing re-parses it once scrolling stops).
+        for _, node in query:iter_captures(root, bufnr) do
             local sr, sc, er, ec = node:range()
-            local value = ts.get_node_text(node, 0)
-
-            process_equation(sr, sc, er, ec, value)
+            if er >= start_row and sr < end_row then
+                local value = ts.get_node_text(node, bufnr)
+                process_equation(sr, sc, er, ec, value)
+            end
         end
     end
     inlines:for_each_tree(get_queries)
@@ -208,7 +216,7 @@ function M.disable(bufnr)
 end
 
 function M.disable_all()
-    for bufnr, buffer in pairs(buffers) do
+    for _, buffer in pairs(buffers) do
         buffer:free()
     end
 end
@@ -222,5 +230,14 @@ function M.clear(bufnr)
         buffer:clear(true)
     end
 end
+
+-- `VimLeave` is not buffer-local. Registering it per buffer would leak one
+-- callback for every enabled buffer, so keep a single global one.
+nvim.create_autocmd({'VimLeave'}, {
+    group = augroup,
+    callback = function()
+        M.disable_all()
+    end,
+})
 
 return M
