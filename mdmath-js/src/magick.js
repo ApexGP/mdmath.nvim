@@ -1,4 +1,5 @@
-import { spawn, exec } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import path from 'node:path';
 import { stat } from 'node:fs';
 // import { sendNotification, saveFile } from './debug.js';
 
@@ -21,11 +22,16 @@ const fileExists = (filename) => new Promise((resolve, reject) => {
     });
 });
 
-const paths = process.env.PATH.split(':');
+// `path.delimiter` is ':' on POSIX and ';' on Windows.
+const paths = (process.env.PATH || '').split(path.delimiter).filter((entry) => entry.length > 0);
 async function findBinary(name) {
-    for (const path of paths) {
-        if (await fileExists(`${path}/${name}`))
-            return `${path}/${name}`;
+    const candidates = process.platform === 'win32' ? [`${name}.exe`, name] : [name];
+    for (const dir of paths) {
+        for (const candidate of candidates) {
+            const filename = path.join(dir, candidate);
+            if (await fileExists(filename))
+                return filename;
+        }
     }
     return null;
 }

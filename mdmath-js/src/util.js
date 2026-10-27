@@ -1,6 +1,4 @@
-import { randomBytes, createHash } from 'node:crypto';
-
-const sha256 = createHash('sha256');
+import { createHash } from 'node:crypto';
 
 /**
  * Computes the SHA-256 hash of the given data.
@@ -8,6 +6,7 @@ const sha256 = createHash('sha256');
  * @returns {string} The SHA-256 hash of the input data as a hexadecimal string.
  */
 export function sha256Hash(data) {
-    sha256.update(data, 'utf8');
-    return sha256.copy().digest('hex');
+    // A new hash per call, otherwise every digest would include the data from
+    // all previous calls (the module-level instance is stateful).
+    return createHash('sha256').update(data, 'utf8').digest('hex');
 }

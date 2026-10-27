@@ -1,3 +1,5 @@
+import os from 'node:os';
+
 const callbacks = [];
 
 function run() {
@@ -8,10 +10,11 @@ process.on('exit', (code) => {
     run();
 });
 
+// `process.on(signal)` handlers receive the signal name, not an exit code.
 ['SIGINT', 'SIGTERM', 'SIGHUP'].forEach((signal) => {
-    process.on(signal, (_, code) => {
+    process.on(signal, () => {
         // Handle as a normal exit
-        process.exit(128 + code);
+        process.exit(128 + (os.constants.signals[signal] || 0));
     });
 });
 

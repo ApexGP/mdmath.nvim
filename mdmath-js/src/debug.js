@@ -15,6 +15,9 @@ export async function saveFile(filename, data) {
 }
 
 export function sendNotification(message) {
+    if (process.platform !== 'linux')
+        return;
+
     exec(`notify-send "Processor.js" '${message}'`, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error: ${error.message}`);

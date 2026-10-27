@@ -1,4 +1,6 @@
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import mathjax from 'mathjax';
 import reader from './reader.js';
 import { pngDimensions, pngFitTo, rsvgConvert } from './magick.js';
@@ -10,8 +12,7 @@ import { onExit } from './onexit.js';
 // To prevent conflicts with other instances
 const DIRECTORY_SUFFIX = randomBytes(3).toString('hex');
 
-// TODO: Portable directory instead of Unix-specific
-const IMG_DIR = `/tmp/nvim-mdmath-${DIRECTORY_SUFFIX}`;
+const IMG_DIR = path.join(os.tmpdir(), `nvim-mdmath-${DIRECTORY_SUFFIX}`);
 
 /** @typedef {{equation: string, filename: string}} Equation */
 
@@ -70,12 +71,18 @@ async function equationToSVG(equation) {
     }
 }
 
+// The length prefix is counted in bytes, because the Lua side reads a fixed
+// number of raw bytes. Using `String#length` (UTF-16 code units) desyncs the
+// parser for any non-ASCII payload (file paths, error messages).
 function write(identifier, width, height, data) {
-    process.stdout.write(`${identifier}:image:${width}:${height}:${data.length}:${data}`);
+    const length = Buffer.byteLength(data, 'utf8');
+    process.stdout.write(`${identifier}:image:${width}:${height}:${length}:${data}`);
 }
 
 function writeError(identifier, error) {
-    process.stdout.write(`${identifier}:error:0:0:${error.length}:${error}`);
+    error = String(error);
+    const length = Buffer.byteLength(error, 'utf8');
+    process.stdout.write(`${identifier}:error:0:0:${length}:${error}`);
 }
 
 function parseViewbox(svgString) {
@@ -94,7 +101,9 @@ async function processEquation(identifier, equation, cWidth, cHeight, width, hei
     if (!equation || equation.trim().length === 0)
         return writeError(identifier, 'Empty equation')
 
-    const equation_key = `${equation}_${cWidth}*${width}x${cHeight}*${height}_${flags}_${color}`;
+    // The scales are part of the key: changing them changes the rendered pixel
+    // dimensions, so a cached entry becomes invalid.
+    const equation_key = `${equation}_${cWidth}*${width}x${cHeight}*${height}_${flags}_${color}_${internalScale}x${dynamicScale}`;
     if (equation_key in equationMap) {
         const equationObj = equationMap[equation_key];
         return write(identifier, equationObj.width, equationObj.height, equationObj.filename);
