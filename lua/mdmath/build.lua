@@ -19,12 +19,13 @@ local function build(L)
 
     local err_msg = {}
 
-    local handle, err, ename
-    handle, err, ename = uv.spawn('npm', {
+    local handle, err
+    local npm = vim.fn.has('win32') == 1 and 'npm.cmd' or 'npm'
+    handle, err = uv.spawn(npm, {
         args = {'install'},
         stdio = {nil, nil, stderr},
         cwd = build_dir,
-    }, function(code, signal)
+    }, function(code)
         handle:close()
         stderr:close()
         if code ~= 0 then
