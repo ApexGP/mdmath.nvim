@@ -498,7 +498,7 @@ local function schedule_auto()
         auto_timer = assert(vim.uv.new_timer())
     end
 
-    auto_timer:start(config.update_interval, 0, vim.schedule_wrap(function()
+    auto_timer:start(config.preview_delay, 0, vim.schedule_wrap(function()
         if state.win or api.nvim_get_current_buf() ~= bufnr or vim.fn.mode() ~= 'n' then
             return
         end

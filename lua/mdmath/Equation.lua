@@ -39,7 +39,7 @@ end
 ---@param err string|nil
 function Equation:_create(res, err)
     if not res then
-        local text = ' ' .. err
+        local text = 'x ' .. err
         local color = 'Error'
         vim.schedule(function()
             if self.valid then

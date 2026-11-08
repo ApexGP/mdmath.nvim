@@ -13,6 +13,7 @@ local cases = {
     { name = 'filetypes = string', opts = { filetypes = 'markdown' } },
     { name = 'transfer = bogus', opts = { transfer = 'bogus' } },
     { name = 'preview_on_cursor = string', opts = { preview_on_cursor = 'yes' } },
+    { name = 'preview_delay = -1', opts = { preview_delay = -1 } },
 }
 
 for _, case in ipairs(cases) do

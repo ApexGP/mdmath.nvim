@@ -1,8 +1,13 @@
 # ✨ mdmath.nvim
 
-A Markdown equation previewer inside Neovim, using Kitty Graphics Protocol.
+Live math preview for Markdown inside Neovim. Equations render as you type — inline in the
+buffer, in a floating window under the cursor, or in a persistent pane. Edit the TeX, watch
+the result update, never leave the editor.
 
-https://github.com/user-attachments/assets/bcfab0d2-60fb-4e8a-9402-2be62a5504f6
+Images are placed with the Kitty Graphics Protocol (Unicode placeholders), so they are
+anchored to text cells and scroll with the buffer.
+
+https://github.com/user-attachments/assets/90fd3fba-4caf-4ebd-afba-86db7400197a
 
 ## Requirements
   - Neovim version `>=0.10.0`
@@ -73,6 +78,8 @@ opts = {
     dynamic_scale = 1.0,
     -- Interval between updates (milliseconds).
     update_interval = 400,
+    -- Delay before the automatic preview opens (milliseconds).
+    preview_delay = 150,
     -- Open a floating preview while the cursor rests on an equation.
     -- Set to false to keep `:MdMath preview` on-demand.
     preview_on_cursor = true,
@@ -128,20 +135,3 @@ The Lua client and the node processor share a byte-oriented wire format. If you 
 The plugin version lives in `lua/mdmath/version.lua`. `mdmath-js/package.json` and `package-lock.json` must match it (a test enforces this), and a release tag must match it after dropping the `v` prefix and any prerelease suffix (the Release workflow enforces this).
 
 Releases are cut by pushing a `v*` tag: the `Release` workflow publishes a GitHub release with generated notes. Nothing is compiled or bundled — the repository is the artifact, and `mdmath-js` dependencies are installed by users through `:MdMath build`.
-
-## Looking to the future!
-
-The plugin is at alpha. Remaining work, ordered by implementation effort (smallest first):
-
-  - [ ] Support Kitty Graphics Protocol without Unicode Placeholders — blocked upstream, see the terminal notes above
-
-Done:
-
-  - [x] Render out-of-line — `:MdMath pane` docks a persistent preview to the bottom-right corner; it follows the equation under the cursor, refreshes on scroll and while typing
-  - [x] Render in floating windows — `:MdMath preview` / `require'mdmath'.preview()` hosts the placeholder cells in a scratch buffer; the preview opens when the cursor rests on an equation (`preview_on_cursor`, default on), stays live in Insert mode and closes on cursor movement, scroll or buffer/window switch
-  - [x] An API to generate equation images — `require'mdmath'.render(tex, opts, callback)` wraps `Processor`/`Image`; `tests/spec/api_spec.lua` covers the contract and `api_render_spec.lua` the cache hits and error responses against the real renderer
-  - [x] Refactoring: LuaCATS annotations
-  - [x] Documentation — `:help mdmath` covers usage, options, terminal support and protocol notes
-  - [x] Dynamic width and height
-  - [x] `:checkhealth`
-  - [x] Detect terminals without Unicode placeholders and keep the source text visible

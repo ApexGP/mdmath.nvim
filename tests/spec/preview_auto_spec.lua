@@ -7,7 +7,7 @@ local t = dofile(root .. '/tests/helper.lua')
 t.bootstrap()
 
 local mdmath = require'mdmath'
-mdmath.setup({update_interval = 30})
+mdmath.setup({update_interval = 30, preview_delay = 30})
 t.stub_image()
 t.stub_processor()
 

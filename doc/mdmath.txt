@@ -171,7 +171,7 @@ re-read and re-rendered, so the image tracks what is being typed. The callback
 receives the window id, or nil plus an error message.
 
 This is on by default: when the cursor rests on an equation for
-`update_interval` milliseconds, the preview opens without any command. Set
+`preview_delay` milliseconds, the preview opens without any command. Set
 `preview_on_cursor = false` (see |mdmath-preview_on_cursor|) to require
 `:MdMath preview` every time. Errors raised while opening automatically are
 silent: the inline mark already reports them.
@@ -204,6 +204,7 @@ Defaults: >lua
       dynamic_scale = 1.0,
       internal_scale = 1.0,
       update_interval = 400,
+      preview_delay = 150,
       preview_on_cursor = true,
       transfer = 'auto',
   }
@@ -244,13 +245,20 @@ Defaults: >lua
 
                                                      *mdmath-update_interval*
 `update_interval` (integer)
-    Debounce, in milliseconds, between a buffer change and the re-parse. The
-    same delay is used before the floating preview opens.
+    Debounce, in milliseconds, between a buffer change and the re-parse. Also
+    the delay before the pane and the Insert-mode preview refresh.
+
+                                                         *mdmath-preview_delay*
+`preview_delay` (integer)
+    Delay, in milliseconds, before the automatic floating preview opens after
+    the cursor stops on an equation. Kept separate from `update_interval` so
+    the preview feels immediate without re-parsing the buffer on every
+    keystroke.
 
                                                   *mdmath-preview_on_cursor*
 `preview_on_cursor` (boolean)
     Open the floating preview by itself once the cursor has rested on an
-    equation for `update_interval` milliseconds; it closes on the next cursor
+    equation for `preview_delay` milliseconds; it closes on the next cursor
     movement. Set to false to keep |mdmath-preview| strictly on-demand.
 
                                                             *mdmath-transfer*

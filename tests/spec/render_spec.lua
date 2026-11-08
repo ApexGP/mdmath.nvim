@@ -39,6 +39,8 @@ for _, mark in ipairs(added) do
     if mark.opts.color == 'Error' then
         errors = errors + 1
         error_row = mark.row
+        t.eq(vim.fn.strcharpart(mark.opts.text[1], 0, 1), 'x',
+            'error mark uses an ASCII symbol')
     else
         images = images + 1
     end

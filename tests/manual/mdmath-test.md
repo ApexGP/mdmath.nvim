@@ -48,7 +48,7 @@ $$\text{中文} + \alpha = \beta$$
 
 ## 7. Error path
 
-The equation below must render `✙` plus the error text in place: Neovim must not crash and
+The equation below must render `x` plus the error text in place: Neovim must not crash and
 `:messages` must not contain a luv callback error.
 
 $\begin{unknownenv}x\end{unknownenv}$

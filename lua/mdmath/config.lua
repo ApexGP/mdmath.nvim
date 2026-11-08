@@ -8,6 +8,7 @@
 ---@field dynamic_scale number
 ---@field internal_scale number
 ---@field update_interval integer
+---@field preview_delay integer
 ---@field preview_on_cursor boolean
 ---@field transfer 'auto'|'file'|'direct'
 
@@ -28,6 +29,11 @@ local default_opts = {
     dynamic_scale = 1.0,
     -- Interval between updates (milliseconds).
     update_interval = 400,
+
+    -- Delay before the automatic preview opens (milliseconds). Kept separate
+    -- from `update_interval`: the preview must feel instant, while re-parsing
+    -- the buffer is only needed after edits.
+    preview_delay = 150,
 
     -- Open a floating preview while the cursor rests on an equation. The
     -- preview closes on the next cursor movement; set to false to keep the
@@ -106,6 +112,7 @@ function M.validate()
         dynamic_scale = {opts.dynamic_scale, 'number'},
         internal_scale = {opts.internal_scale, 'number'},
         update_interval = {opts.update_interval, 'number'},
+        preview_delay = {opts.preview_delay, 'number'},
         preview_on_cursor = {opts.preview_on_cursor, 'boolean'},
         transfer = {opts.transfer, 'string'},
     }
@@ -115,6 +122,7 @@ function M.validate()
     assert(opts.dynamic_scale > 0, 'mdmath.nvim: `dynamic_scale` must be greater than 0')
     assert(opts.internal_scale > 0, 'mdmath.nvim: `internal_scale` must be greater than 0')
     assert(opts.update_interval >= 0, 'mdmath.nvim: `update_interval` must not be negative')
+    assert(opts.preview_delay >= 0, 'mdmath.nvim: `preview_delay` must not be negative')
     assert(vim.tbl_contains({'auto', 'file', 'direct'}, opts.transfer),
         'mdmath.nvim: `transfer` must be one of "auto", "file", "direct"')
 

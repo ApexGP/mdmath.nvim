@@ -22,6 +22,7 @@ mdmath-options	mdmath.txt	/*mdmath-options*
 mdmath-pane	mdmath.txt	/*mdmath-pane*
 mdmath-placeholders	mdmath.txt	/*mdmath-placeholders*
 mdmath-preview	mdmath.txt	/*mdmath-preview*
+mdmath-preview_delay	mdmath.txt	/*mdmath-preview_delay*
 mdmath-preview_on_cursor	mdmath.txt	/*mdmath-preview_on_cursor*
 mdmath-protocol	mdmath.txt	/*mdmath-protocol*
 mdmath-requirements	mdmath.txt	/*mdmath-requirements*
