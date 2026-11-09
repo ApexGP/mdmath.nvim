@@ -26,6 +26,7 @@ You also need a terminal emulator that supports the [Kitty graphics protocol wit
   - [x] Ghostty `>=1.0`
   - [ ] WezTerm (kitty graphics without Unicode placeholders, upstream wezterm#7924)
   - [ ] Konsole (kitty graphics without Unicode placeholders)
+  - [ ] Neovide (GUI frontend without image rendering, upstream neovide#3039)
 
 On these terminals the plugin keeps the equation source visible instead of printing placeholder characters, and warns once. `:checkhealth mdmath` reports how the terminal was classified; `vim.g.mdmath_force_placeholders = 1` overrides it for a terminal that gained support later.
 

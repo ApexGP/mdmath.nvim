@@ -285,8 +285,11 @@ the terminal cursor without corrupting its own output.
   - WezTerm                               not supported (wezterm#7924)
   - Konsole                               not supported
   - VS Code / Cursor terminal             not supported (no graphics protocol)
+  - Neovide                               not supported (GUI frontend without an
+                                          image renderer yet, neovide#3039)
 
-Support is detected from `TERM`, `TERM_PROGRAM` and `KITTY_WINDOW_ID`. On a
+Support is detected from `TERM`, `TERM_PROGRAM` and `KITTY_WINDOW_ID`; Neovide is
+detected from `g:neovide`. On a
 terminal classified as unsupported the plugin leaves the source text visible and
 warns once. An unknown terminal is assumed to work but reported as unconfirmed
 by |:checkhealth|.

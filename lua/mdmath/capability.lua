@@ -10,6 +10,12 @@
 -- There is no capability query that works everywhere (Ghostty does not answer
 -- feature queries), so known families are matched from TERM/TERM_PROGRAM and
 -- anything unknown is treated as supported but not confirmed.
+--
+-- GUI frontends are a separate category: they do not consume Kitty escape
+-- sequences at all. Neovide sets `g:neovide` and has no image rendering yet
+-- (neovide#3039 is still an open draft); Neovim's merged `vim.ui.img` API
+-- places images at absolute grid coordinates and has no Unicode placeholders,
+-- so it cannot back the text-anchored cells this plugin relies on either.
 
 local M = {}
 
@@ -62,6 +68,14 @@ end
 function M.supports_placeholders()
     if vim.g.mdmath_force_placeholders then
         return true, 'forced by vim.g.mdmath_force_placeholders', true
+    end
+
+    -- Neovide renders the grid itself and does not implement the Kitty
+    -- graphics protocol (or placeholders) yet. Detection is explicit because
+    -- TERM inside Neovide is the inherited terminal's, which would otherwise
+    -- classify as "unknown, assume supported".
+    if vim.g.neovide then
+        return false, 'Neovide does not implement image rendering yet (neovide#3039)', true
     end
 
     return M.classify({

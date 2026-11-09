@@ -31,4 +31,17 @@ for _, case in ipairs(cases) do
     t.ok(type(reason) == 'string' and reason ~= '', case.name .. ' has a reason')
 end
 
+-- Neovide is a GUI: it never consumes Kitty escape sequences.
+vim.g.neovide = true
+vim.g.mdmath_force_placeholders = nil
+local supported, reason, confident = capability.supports_placeholders()
+t.eq(supported, false, 'neovide is unsupported')
+t.eq(confident, true, 'neovide detection is confident')
+t.ok(reason:find('Neovide', 1, true) ~= nil, 'neovide reason names the frontend')
+
+vim.g.mdmath_force_placeholders = 1
+t.eq(capability.supports_placeholders(), true, 'force override still wins over neovide')
+vim.g.mdmath_force_placeholders = nil
+vim.g.neovide = nil
+
 t.finish()
