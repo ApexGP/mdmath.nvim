@@ -60,6 +60,18 @@ bufnr = parse({'`\\[f\\]`'})
 t.eq(#requests, 0, 'brackets inside a code span are not math')
 mdmath.disable(bufnr)
 
+-- A `\[` inside `$ ... $` is part of that equation: nesting would put two
+-- images on the same range.
+bufnr = parse({'$a \\[b\\] c$'})
+t.eq(#requests, 1, 'brackets inside dollar math are not a second equation')
+t.ok(requests[1].data:find('a \\[b\\] c', 1, true) ~= nil, 'the dollar equation keeps its TeX')
+mdmath.disable(bufnr)
+
+-- `\\[1ex]` is a LaTeX line break, not a delimiter.
+bufnr = parse({'x \\\\[y\\\\] z'})
+t.eq(#requests, 0, 'escaped brackets are not math')
+mdmath.disable(bufnr)
+
 bufnr = parse({'$g$'})
 t.eq(#requests, 1, 'dollar math is unchanged')
 t.eq(requests[1].data, 'g', 'dollar delimiters are still stripped')

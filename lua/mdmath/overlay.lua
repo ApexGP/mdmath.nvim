@@ -202,27 +202,40 @@ function Buffer:parse(start_row, end_row)
     --- `\[ ... \]` is display math in LaTeX but not part of the injected
     --- grammar. Scan the lines of this inline tree; the tree is already known to
     --- overlap the viewport, so a block that starts above it is still found.
-    --- Matches inside code spans are ignored (regexes, shell globs).
+    --- Matches inside code spans (`\[0-9\]` in a regex) and inside an existing
+    --- `$...$` capture are ignored: nesting would put two images on one range.
     ---@param root TSNode
     ---@param sr integer
     ---@param sc integer
     ---@param er integer
     ---@param ec integer
-    local function scan_bracket_blocks(root, sr, sc, er, ec)
-        local code = {}
+    ---@param latex integer[][] ranges of `$` captures in this tree
+    local function scan_bracket_blocks(root, sr, sc, er, ec, latex)
+        local protected = latex
         for _, node in get_code_query():iter_captures(root, bufnr) do
-            code[#code + 1] = {node:range()}
+            protected[#protected + 1] = {node:range()}
         end
 
-        local function in_code(row, col)
-            for _, range in ipairs(code) do
-                local csr, csc, cer, cec = range[1], range[2], range[3], range[4]
-                if (row > csr or (row == csr and col >= csc))
-                    and (row < cer or (row == cer and col < cec)) then
+        ---@param row integer
+        ---@param col integer
+        ---@return boolean
+        local function in_protected(row, col)
+            for _, range in ipairs(protected) do
+                local psr, psc, per, pec = range[1], range[2], range[3], range[4]
+                if (row > psr or (row == psr and col >= psc))
+                    and (row < per or (row == per and col < pec)) then
                     return true
                 end
             end
             return false
+        end
+
+        --- A preceding backslash makes the delimiter escaped (`\\[1ex]`).
+        ---@param line string
+        ---@param pos integer 1-based index of the delimiter's backslash
+        ---@return boolean
+        local function escaped(line, pos)
+            return pos > 1 and line:sub(pos - 1, pos - 1) == '\\'
         end
 
         local lines = nvim.buf_get_lines(bufnr, sr, er + 1, false)
@@ -239,12 +252,14 @@ function Buffer:parse(start_row, end_row)
                 local close_at = line:find('\\]', i, true)
 
                 if open_at and (not close_at or open_at < close_at) then
-                    if not in_code(row, open_at - 1) then
+                    if not escaped(line, open_at) and not in_protected(row, open_at - 1) then
                         open_row, open_col = row, open_at - 1
                     end
                     i = open_at + 2
                 elseif close_at then
-                    if open_row then
+                    if not escaped(line, close_at)
+                        and not in_protected(row, close_at - 1)
+                        and open_row then
                         local close_row, close_col = row, close_at + 1
                         local key = open_row .. ':' .. open_col
                         if not seen_brackets[key] and close_row >= start_row and open_row < end_row then
@@ -277,15 +292,18 @@ function Buffer:parse(start_row, end_row)
             return
         end
 
+        local latex = {}
         for _, node in query:iter_captures(root, bufnr) do
-            local sr, sc, er, ec = node:range()
+            local range = {node:range()}
+            latex[#latex + 1] = range
+            local sr, sc, er, ec = range[1], range[2], range[3], range[4]
             if er >= start_row and sr < end_row then
                 local value = ts.get_node_text(node, bufnr)
                 process_equation(sr, sc, er, ec, value)
             end
         end
 
-        scan_bracket_blocks(root, tsr, tsc, ter, tec)
+        scan_bracket_blocks(root, tsr, tsc, ter, tec, latex)
     end
     inlines:for_each_tree(get_queries)
 
