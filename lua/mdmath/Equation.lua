@@ -184,8 +184,16 @@ function Equation:_init(bufnr, row, col, text, opts)
     self.valid = true
     self.color = color
 
-    -- remove trailing '$'
-    self.equation = text:gsub('^%$*(.-)%$*$', '%1')
+    -- `\[ ... \]` is display math in LaTeX but not part of the
+    -- markdown_inline grammar, so the delimiters are stripped here as well.
+    if text:sub(1, 2) == '\\[' and text:sub(-2) == '\\]' then
+        -- Multi-line blocks keep the newlines around the TeX; trim them so the
+        -- renderer sees exactly the expression.
+        self.equation = text:sub(3, -3):gsub('^%s+', ''):gsub('%s+$', '')
+    else
+        -- remove trailing '$'
+        self.equation = text:gsub('^%$*(.-)%$*$', '%1')
+    end
 
     local cell_width, cell_height = terminfo.cell_size()
 

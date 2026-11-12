@@ -114,3 +114,14 @@ Placeholder line A
 Placeholder line B
 
 Placeholder line C
+
+## 10. LaTeX bracket delimiters
+
+`\[ ... \]` is recognised as display math even though the Markdown parser does not emit a
+`latex_block` for it. Inline: \[a^2 + b^2\] must render in place.
+
+The same delimiters inside a code span are not math: `\[not math\]` must stay as source text.
+
+\[
+\int_0^1 x^2 \, dx = \frac{1}{3}
+\]

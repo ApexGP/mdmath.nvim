@@ -2,7 +2,7 @@
 
 Live math preview for Markdown inside Neovim. Equations render as you type — inline in the
 buffer, in a floating window under the cursor, or in a persistent pane. Edit the TeX, watch
-the result update, never leave the editor.
+the result update, never leave the editor. `$...$`, `$$...$$` and `\[...\]` are supported.
 
 Images are placed with the Kitty Graphics Protocol (Unicode placeholders), so they are
 anchored to text cells and scroll with the buffer.

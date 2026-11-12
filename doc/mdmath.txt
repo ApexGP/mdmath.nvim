@@ -1,10 +1,10 @@
 *mdmath.txt*  Equation previews inside Neovim                  *mdmath* *mdmath.nvim*
 
-mdmath.nvim renders Markdown equations ($...$ and $$...$$) as images inside the
-buffer, using the Kitty Graphics Protocol with Unicode placeholders.
+mdmath.nvim renders Markdown equations ($...$, $$...$$ and \[...\]) as images
+inside the buffer, using the Kitty Graphics Protocol with Unicode placeholders.
 
                                                        *mdmath-version*
-This help file documents version 0.4.1. The plugin is alpha: the Lua API and the
+This help file documents version 0.4.2. The plugin is alpha: the Lua API and the
 wire format may change between minor versions.
 
 ==============================================================================

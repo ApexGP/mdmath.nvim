@@ -27,6 +27,8 @@ local Buffer = util.class 'Buffer'
 local INLINE_LANG = 'markdown_inline'
 ---@type vim.treesitter.Query|nil
 local inline_query = nil
+---@type vim.treesitter.Query|nil
+local code_query = nil
 
 -- Compiling the query on every parse tick is wasteful; it only depends on the
 -- language, never on the buffer.
@@ -36,6 +38,15 @@ local function get_inline_query()
         inline_query = vim.treesitter.query.parse(INLINE_LANG, '(latex_block) @block')
     end
     return inline_query
+end
+
+--- Code spans are not math even when they contain `\[` (regexes, shell globs).
+---@return vim.treesitter.Query
+local function get_code_query()
+    if not code_query then
+        code_query = vim.treesitter.query.parse(INLINE_LANG, '(code_span) @code')
+    end
+    return code_query
 end
 
 -- FIX: Temporary workaround before NeoVim 0.12
@@ -183,10 +194,79 @@ function Buffer:parse(start_row, end_row)
         end
     end
 
+    --- Blocks already claimed by this pass, so overlapping injected trees cannot
+    --- add the same `\[ ... \]` twice.
+    ---@type table<string, boolean>
+    local seen_brackets = {}
+
+    --- `\[ ... \]` is display math in LaTeX but not part of the injected
+    --- grammar. Scan the lines of this inline tree; the tree is already known to
+    --- overlap the viewport, so a block that starts above it is still found.
+    --- Matches inside code spans are ignored (regexes, shell globs).
+    ---@param root TSNode
+    ---@param sr integer
+    ---@param sc integer
+    ---@param er integer
+    ---@param ec integer
+    local function scan_bracket_blocks(root, sr, sc, er, ec)
+        local code = {}
+        for _, node in get_code_query():iter_captures(root, bufnr) do
+            code[#code + 1] = {node:range()}
+        end
+
+        local function in_code(row, col)
+            for _, range in ipairs(code) do
+                local csr, csc, cer, cec = range[1], range[2], range[3], range[4]
+                if (row > csr or (row == csr and col >= csc))
+                    and (row < cer or (row == cer and col < cec)) then
+                    return true
+                end
+            end
+            return false
+        end
+
+        local lines = nvim.buf_get_lines(bufnr, sr, er + 1, false)
+        local open_row, open_col
+
+        for offset, line in ipairs(lines) do
+            local row = sr + offset - 1
+            local from = row == sr and sc + 1 or 1
+            local to = row == er and ec or #line
+
+            local i = from
+            while i <= to do
+                local open_at = line:find('\\[', i, true)
+                local close_at = line:find('\\]', i, true)
+
+                if open_at and (not close_at or open_at < close_at) then
+                    if not in_code(row, open_at - 1) then
+                        open_row, open_col = row, open_at - 1
+                    end
+                    i = open_at + 2
+                elseif close_at then
+                    if open_row then
+                        local close_row, close_col = row, close_at + 1
+                        local key = open_row .. ':' .. open_col
+                        if not seen_brackets[key] and close_row >= start_row and open_row < end_row then
+                            seen_brackets[key] = true
+                            local text = table.concat(
+                                nvim.buf_get_text(bufnr, open_row, open_col, close_row, close_col, {}), '\n')
+                            process_equation(open_row, open_col, close_row, close_col, text)
+                        end
+                        open_row, open_col = nil, nil
+                    end
+                    i = close_at + 2
+                else
+                    break
+                end
+            end
+        end
+    end
+
     ---@param tree TSTree
     local function get_queries(tree)
         local root = tree:root()
-        local tsr, _, ter = root:range()
+        local tsr, tsc, ter, tec = root:range()
 
         -- Each injected `markdown_inline` tree covers one markdown block, so
         -- rejecting the trees that cannot overlap the viewport is far cheaper than
@@ -204,6 +284,8 @@ function Buffer:parse(start_row, end_row)
                 process_equation(sr, sc, er, ec, value)
             end
         end
+
+        scan_bracket_blocks(root, tsr, tsc, ter, tec)
     end
     inlines:for_each_tree(get_queries)
 
