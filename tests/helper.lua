@@ -135,6 +135,10 @@ function M.stub_image()
         function image:color()
             return self.id
         end
+        function image:hide()
+        end
+        function image:show()
+        end
         function image:close()
         end
         return image

@@ -64,6 +64,8 @@ Image.new = function(rows, cols)
         return out
     end
     function self:color() return self.id end
+    function self:hide() end
+    function self:show() end
     function self:close() end
     image_count = image_count + 1
     return self

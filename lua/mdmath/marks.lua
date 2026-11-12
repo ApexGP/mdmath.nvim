@@ -21,6 +21,7 @@ local ns = nvim.create_namespace('mdmath-marks')
 ---@field lines mdmath.mark.Text[]|nil
 ---@field color string|integer
 ---@field text_pos 'eol'|'overlay'|nil
+---@field image mdmath.Image|nil
 
 --- An extmark group: the placeholder cells (or the error text) of one equation.
 ---@class mdmath.Mark
@@ -403,6 +404,17 @@ function Mark:_draw(visible)
         nvim.buf_del_extmark(self.bufnr, ns, id)
     end
     self.extmark_ids = {}
+
+    -- Some terminals keep drawing an image after its placeholder cells are
+    -- removed, so hiding a mark also deletes the placement. `show()` re-places
+    -- the retained image data.
+    if self.opts.image then
+        if visible then
+            self.opts.image:show()
+        else
+            self.opts.image:hide()
+        end
+    end
 
     if not visible then
         local virtual = create_empty_virtual(self.opts, row)

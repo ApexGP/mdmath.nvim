@@ -101,6 +101,7 @@ function Equation:_create(res, err)
                     lines = lines,
                     color = color,
                     text_pos = 'overlay',
+                    image = image,
                 })
                 self.image = image
                 self.created = true
@@ -124,6 +125,7 @@ function Equation:_create(res, err)
                     text = { text, self.text:len() },
                     color = color,
                     text_pos = 'overlay',
+                    image = image,
                 })
                 self.image = image
                 self.created = true

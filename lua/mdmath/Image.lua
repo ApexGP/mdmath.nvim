@@ -213,6 +213,7 @@ end
 ---@field id integer|nil nil once closed
 ---@field rows integer
 ---@field cols integer
+---@field hidden boolean placement deleted but image data retained
 ---@field path string PNG on disk; the renderer deletes it when it exits
 ---@field _init fun(self: mdmath.Image, rows: integer, cols: integer, payload: string): false|nil
 ---@field new fun(rows: integer, cols: integer, payload: string): mdmath.Image?
@@ -239,6 +240,7 @@ function Image:_init(rows, cols, payload)
     self.rows = rows
     self.cols = cols
     self.path = payload
+    self.hidden = false
 
     -- A "virtual placement" (`U=1`) is what makes the placeholder cells resolve:
     -- nothing is drawn at the cursor, the image only appears where U+10EEEE cells
@@ -300,6 +302,29 @@ end
 ---@return integer
 function Image:color()
     return self.id -- Color is represented by the id
+end
+
+--- Deletes the placement but keeps the image data, so `show()` can put it back
+--- without re-transmitting. Needed because some terminals keep drawing an image
+--- after its placeholder cells are gone (hiding a mark only removes cells).
+function Image:hide()
+    if not self.id or self.hidden then
+        return
+    end
+
+    self.hidden = true
+    -- Lowercase `d=i`: delete image and placements, keep the pixel data.
+    kitty_send({i = self.id, a = 'd', d = 'i'})
+end
+
+--- Re-places a hidden image.
+function Image:show()
+    if not self.id or not self.hidden then
+        return
+    end
+
+    self.hidden = false
+    kitty_send({i = self.id, U = 1, a = 'p', r = self.rows, c = self.cols})
 end
 
 --- Deletes the image (and its placements) from the terminal. Idempotent.
