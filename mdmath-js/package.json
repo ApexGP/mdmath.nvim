@@ -1,6 +1,6 @@
 {
   "name": "mdmath",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "main": "src/processor.js",
   "author": "",
   "license": "ISC",

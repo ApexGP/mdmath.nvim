@@ -117,6 +117,35 @@ If you are using TMUX, remember to enable `allow-passthrough` in your `~/.tmux.c
 
 The full reference — every option, terminal support, the render pipeline and the IPC wire format — is available offline as `:help mdmath`. `require'mdmath'.render(tex, opts, callback)` renders an equation without a buffer; see `:help mdmath-api`.
 
+## Other plugins that render math
+
+mdmath draws into the terminal's own image store, keyed by placement, so it cannot
+stop another plugin from drawing the same formula. The symptoms are a second
+image stacked on top of ours (often the coloured source line under a white
+image), or a wrong result next to the correct one. Two plugins are on by default
+in LazyVim and must be turned off:
+
+- **snacks.nvim** renders math with `pdflatex`/`tectonic` whenever `image.enabled`
+  is set. It has no CJK support (`\text{中文}` loses its argument) and
+  `-interaction=nonstopmode` keeps going after a LaTeX error, so
+  `\begin{unknownenv}x\end{unknownenv}` is compiled to a bare `x`. Disable it:
+
+  ```lua
+  { 'folke/snacks.nvim', opts = { image = { enabled = true, math = { enabled = false } } } }
+  ```
+
+- **render-markdown.nvim** has `latex.enabled = true` by default and needs
+  `utftex` or `latex2text`; once either is installed it replaces math with
+  unicode text and virtual lines.
+
+  ```lua
+  { 'MeanderingProgrammer/render-markdown.nvim', opts = { latex = { enabled = false } } }
+  ```
+
+The `@markup.math.latex` highlight from the injected `latex` parser is not a
+renderer — it only colours the source, and it is supposed to be visible while
+`anticonceal` hides a mark.
+
 ## Development
 
 ```sh
