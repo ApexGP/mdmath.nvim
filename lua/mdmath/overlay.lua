@@ -279,7 +279,17 @@ function Buffer:parse(start_row, end_row)
     end
 
     ---@param tree TSTree
-    local function get_queries(tree)
+    ---@param lang vim.treesitter.LanguageTree
+    local function get_queries(tree, lang)
+        -- `for_each_tree` also visits injected trees. Node names are not unique
+        -- across grammars: the `latex` tree exposes a `\text` command as a
+        -- `latex_block`, so the `markdown_inline` query matches it as well and
+        -- adds a second, truncated equation (`\text` alone) next to the real
+        -- one. Only trees parsed by `markdown_inline` are ours to query.
+        if lang and lang:lang() ~= INLINE_LANG then
+            return
+        end
+
         local root = tree:root()
         local tsr, tsc, ter, tec = root:range()
 
