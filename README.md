@@ -102,27 +102,13 @@ opts = {
 }
 ```
 
-## Usage
-
-Equations render inline; `:MdMath preview` (and, by default, resting the cursor on an equation) shows a floating preview.
-  - `:MdMath enable`: Enable the plugin for the current buffer
-  - `:MdMath disable`: Disable the plugin for the current buffer
-  - `:MdMath clear`: Refresh all equations
-  - `:MdMath build`: Build the node.js server
-  - `:MdMath preview`: Preview the equation under the cursor in a floating window (also opens automatically when the cursor rests on an equation; disable with `preview_on_cursor = false`)
-  - `:MdMath pane`: Toggle a persistent out-of-line preview pane in the bottom-right corner, refreshed while typing
-  - `:checkhealth mdmath`: Check Neovim/parser/dependency/terminal requirements
-
-If you are using TMUX, remember to enable `allow-passthrough` in your `~/.tmux.conf`.
-
-The full reference — every option, terminal support, the render pipeline and the IPC wire format — is available offline as `:help mdmath`. `require'mdmath'.render(tex, opts, callback)` renders an equation without a buffer; see `:help mdmath-api`.
-
 ## Other plugins that render math
 
+Try this first if equations look duplicated — a coloured source line under a white
+image, or a wrong result next to the correct one.
+
 mdmath draws into the terminal's own image store, keyed by placement, so it cannot
-stop another plugin from drawing the same formula. The symptoms are a second
-image stacked on top of ours (often the coloured source line under a white
-image), or a wrong result next to the correct one. Two plugins are on by default
+stop another plugin from drawing the same formula. Two plugins are on by default
 in LazyVim and must be turned off:
 
 - **snacks.nvim** renders math with `pdflatex`/`tectonic` whenever `image.enabled`
@@ -146,22 +132,22 @@ The `@markup.math.latex` highlight from the injected `latex` parser is not a
 renderer — it only colours the source, and it is supposed to be visible while
 `anticonceal` hides a mark.
 
-## Development
+## Usage
 
-```sh
-make test    # headless Lua specs (one Neovim process per spec) + node IPC/unit tests
-make bench   # viewport scan cost on a synthetic document
-```
+Equations render inline; `:MdMath preview` (and, by default, resting the cursor on an equation) shows a floating preview.
+  - `:MdMath enable`: Enable the plugin for the current buffer
+  - `:MdMath disable`: Disable the plugin for the current buffer
+  - `:MdMath clear`: Refresh all equations
+  - `:MdMath build`: Build the node.js server
+  - `:MdMath preview`: Preview the equation under the cursor in a floating window (also opens automatically when the cursor rests on an equation; disable with `preview_on_cursor = false`)
+  - `:MdMath pane`: Toggle a persistent out-of-line preview pane in the bottom-right corner, refreshed while typing
+  - `:checkhealth mdmath`: Check Neovim/parser/dependency/terminal requirements
 
-The render spec needs `node`, `rsvg-convert`, ImageMagick and `mdmath-js/node_modules`
-(`:MdMath build`). Without them it is skipped, not failed. Terminal capabilities are probed
-with `python3 tests/manual/kitty-probe.py`; the manual checklist is
-`tests/manual/mdmath-test.md`.
+If you are using TMUX, remember to enable `allow-passthrough` in your `~/.tmux.conf`.
 
-The Lua client and the node processor share a byte-oriented wire format. If you change any field order or meaning, bump `PROTOCOL_VERSION` in both `lua/mdmath/Processor.lua` and `mdmath-js/src/processor.js` — the processor refuses to start on a mismatch.
+The full reference — every option, terminal support, the render pipeline and the IPC wire format — is available offline as `:help mdmath`. `require'mdmath'.render(tex, opts, callback)` renders an equation without a buffer; see `:help mdmath-api`.
 
-`.luarc.json` configures lua-language-server for the repository (LuaJIT runtime, the Neovim runtime via `${env:VIMRUNTIME}`, `vim` as a known global). The sources are annotated with LuaCATS; with `lua-language-server` on `PATH`, run `lua-language-server --check=. --checklevel=Warning` to verify the annotations.
+## Contributing
 
-The plugin version lives in `lua/mdmath/version.lua`. `mdmath-js/package.json` and `package-lock.json` must match it (a test enforces this), and a release tag must match it after dropping the `v` prefix and any prerelease suffix (the Release workflow enforces this).
-
-Releases are cut by pushing a `v*` tag: the `Release` workflow publishes a GitHub release with generated notes. Nothing is compiled or bundled — the repository is the artifact, and `mdmath-js` dependencies are installed by users through `:MdMath build`.
+Tests, static checks, the protocol version and the release process are documented in
+[CONTRIBUTING.md](CONTRIBUTING.md).

@@ -374,6 +374,16 @@ Nothing renders:
     |mdmath-terminals|.
   - Inside tmux, `allow-passthrough` must be on.
 
+Equations render twice, or a wrong result appears next to a correct one:
+  - Another plugin is drawing the same formula into the terminal's image store;
+    mdmath cannot stop it. Two are on by default in LazyVim:
+      - `snacks.image.math` (pdflatex/tectonic, no CJK support) —
+        `opts = { image = { enabled = true, math = { enabled = false } } }`
+      - `render-markdown.nvim`'s `latex` (needs utftex or latex2text) —
+        `opts = { latex = { enabled = false } }`
+  - The pink math source is not a renderer: `@markup.math.latex` comes from the
+    injected LaTeX parser and is expected to show while a mark is hidden.
+
 Errors appear next to the equation:
   - A red message replaces the source whenever the renderer fails (invalid TeX,
     missing PNG, protocol error). The message comes from MathJax or the Node.js
